@@ -945,21 +945,6 @@ window.addEventListener("DOMContentLoaded", () => {
       });
     }
 
-    /* Yuki download */
-    function triggerDownloadImage(url, filename) {
-      try {
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename || "y.jpg";
-        a.target = "_blank";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      } catch (e) {
-        window.open(url, "_blank");
-      }
-    }
-
 function initYukiInputs() {
 
   const inputs = [
@@ -976,12 +961,8 @@ function initYukiInputs() {
       if (v === "yuki" && input.dataset.done !== "1") {
         input.dataset.done = "1";
 
-        triggerDownloadImage(
-          "https://daryeaye.github.io/geotopia/y.jpg",
-          "y.jpg"
-        );
-
-        input.value = "";
+window.open("https://daryeaye.github.io/gt8/zedong.html", "_blank");
+input.value = "";   // optional: clears box
       }
     });
 
