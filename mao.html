@@ -668,7 +668,7 @@ style="left:20px; top:480px; width:120px; height:36px;">Reset</button>
     }
 
 function confirmName() {
-  const nameInput = document.getElementById("playerName");
+  const nameInput = document.getElementById("username");
   const name = nameInput.value.trim();
 
   if (name === "") return;
@@ -678,7 +678,7 @@ function confirmName() {
   nameInput.value = name;
   nameInput.disabled = true;
 
-  document.getElementById("confirmNameBtn").style.display = "none";
+  document.getElementById("confirmBtn").style.display = "none";
 }
 
     function getSequence() {
@@ -866,16 +866,16 @@ function confirmName() {
       }
 
 window.addEventListener("DOMContentLoaded", () => {
-  const savedName = localStorage.getItem("gt_player_name");
+const savedName = localStorage.getItem("gt_player_name");
 
-  if (savedName) {
-    const nameInput = document.getElementById("playerName");
+if (savedName) {
+  const nameInput = document.getElementById("username");
 
-    nameInput.value = savedName;
-    nameInput.disabled = true;
+  nameInput.value = savedName;
+  nameInput.disabled = true;
 
-    document.getElementById("confirmNameBtn").style.display = "none";
-  }
+  document.getElementById("confirmBtn").style.display = "none";
+}
 });
 
       canvas.addEventListener("mousedown", (e) => {
