@@ -14,11 +14,12 @@
     }
     #container {
       width: 800px;
-      height: 740px;
+      height: 500px;
       margin: 20px auto;
       position: relative;
       background: url('https://daryeaye.github.io/xinlindywane/kitchentable.png') no-repeat center center;
       background-size: 100% 100%;
+      overflow: hidden;
     }
     #container h2 {
       display: none;
@@ -26,16 +27,16 @@
     canvas {
       border: 1px solid #ccc;
       background: transparent;
-      margin-top: 12px;
+      margin-top: 8px;
       display: block;
     }
     #playButton {
       position: absolute;
-      bottom: 34px;
+      bottom: 30px;
       left: 50%;
       transform: translateX(-50%);
       font-size: 16px;
-      padding: 8px 18px;
+      padding: 7px 18px;
       cursor: pointer;
       z-index: 3;
     }
@@ -52,7 +53,7 @@
 <body>
   <div id="container">
     <h2>Trapezoid Area Animation</h2>
-    <canvas id="myCanvas" width="800" height="600"></canvas>
+    <canvas id="myCanvas" width="800" height="410"></canvas>
     <button id="playButton">Play</button>
     <div id="copyright">Author: Xinlin Dwyane Ye</div>
   </div>
@@ -69,7 +70,7 @@
       { x: 50, y: 0 }
     ];
 
-    const originalOffset = { x: 230, y: 300 };
+    const originalOffset = { x: 230, y: 185 };
     const copyInitialShift = 260;
     const copyFinalShift = 150;
     const localCenter = { x: 100, y: 70 };
@@ -359,13 +360,13 @@
       const lines = getCaptionLines();
       ctx.save();
       ctx.fillStyle = "#111";
-      ctx.font = "24px Comic Sans MS";
+      ctx.font = "22px Comic Sans MS";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
 
-      const baseY = 98;
+      const baseY = 72;
       for (let i = 0; i < lines.length; i++) {
-        ctx.fillText(lines[i], 400, baseY + i * 32);
+        ctx.fillText(lines[i], 400, baseY + i * 28);
       }
       ctx.restore();
     }
@@ -379,15 +380,15 @@
         ctx.fillStyle = "#111";
         ctx.textAlign = "center";
 
-        ctx.font = "52px Comic Sans MS";
-        ctx.fillText("Area of a trapezoid", 400, 170);
-
-        ctx.font = "32px Comic Sans MS";
-        ctx.fillText("A = (b₁ + b₂) × h ÷ 2", 400, 285);
+        ctx.font = "42px Comic Sans MS";
+        ctx.fillText("Area of a trapezoid", 400, 120);
 
         ctx.font = "28px Comic Sans MS";
-        ctx.fillText("Add the 2 bases, multiply by the height,", 400, 370);
-        ctx.fillText("then divide by 2.", 400, 410);
+        ctx.fillText("A = (b₁ + b₂) × h ÷ 2", 400, 205);
+
+        ctx.font = "24px Comic Sans MS";
+        ctx.fillText("Add the 2 bases, multiply by the height,", 400, 275);
+        ctx.fillText("then divide by 2.", 400, 310);
         return;
       }
 
@@ -395,8 +396,8 @@
 
       ctx.fillStyle = "#111";
       ctx.textAlign = "center";
-      ctx.font = "34px Comic Sans MS";
-      ctx.fillText("Area of a Trapezoid", 400, 52);
+      ctx.font = "30px Comic Sans MS";
+      ctx.fillText("Area of a Trapezoid", 400, 38);
       drawCaptionStack();
 
       const originalPoints = getOriginalPoints();
@@ -410,12 +411,12 @@
       }
 
       if (currentPhase >= 2 && state.originalProgress === 1) {
-        drawArrow(230, 466, 430, 466, "b₁", "#8e44ad");
+        drawArrow(230, 351, 430, 351, "b₁", "#8e44ad");
       }
 
       if (currentPhase >= 3 && state.originalProgress === 1) {
-        drawArrow(280, 284, 380, 284, "b₂", "#8e44ad");
-        drawHeightLine(330, 300, 440, "h", "#0b7285");
+        drawArrow(280, 169, 380, 169, "b₂", "#8e44ad");
+        drawHeightLine(330, 185, 325, "h", "#0b7285");
       }
 
       if (state.copyOpacity > 0) {
@@ -432,9 +433,8 @@
 
       if (currentPhase >= 8) {
         const xEnd = lerp(230, 530, state.baseArrowProgress);
-        drawArrow(230, 488, xEnd, 488, state.baseArrowProgress >= 0.99 ? "b₁ + b₂" : "", "#c2255c", 1, "below");
+        drawArrow(230, 373, xEnd, 373, state.baseArrowProgress >= 0.99 ? "b₁ + b₂" : "", "#c2255c", 1, "below");
       }
-
     }
 
     function animateProperty(duration, updateFn, doneFn) {
