@@ -1,0 +1,518 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Trapezoid Area Animation</title>
+  <style>
+    body {
+      text-align: center;
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+      background: transparent;
+    }
+    #container {
+      width: 800px;
+      height: 740px;
+      margin: 20px auto;
+      position: relative;
+      background: url('https://daryeaye.github.io/xinlindywane/kitchentable.png') no-repeat center center;
+      background-size: 100% 100%;
+    }
+    #container h2 {
+      display: none;
+    }
+    canvas {
+      border: 1px solid #ccc;
+      background: transparent;
+      margin-top: 12px;
+      display: block;
+    }
+    #playButton {
+      position: absolute;
+      bottom: 34px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 16px;
+      padding: 8px 18px;
+      cursor: pointer;
+      z-index: 3;
+    }
+    #copyright {
+      position: absolute;
+      bottom: 8px;
+      width: 100%;
+      font-family: 'Comic Sans MS', sans-serif;
+      font-size: 12px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <h2>Trapezoid Area Animation</h2>
+    <canvas id="myCanvas" width="800" height="600"></canvas>
+    <button id="playButton">Play</button>
+    <div id="copyright">Author: Xinlin Dwyane Ye</div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("myCanvas");
+    const ctx = canvas.getContext("2d");
+    const playButton = document.getElementById("playButton");
+
+    const localTrap = [
+      { x: 0, y: 140 },
+      { x: 200, y: 140 },
+      { x: 150, y: 0 },
+      { x: 50, y: 0 }
+    ];
+
+    const originalOffset = { x: 230, y: 300 };
+    const copyInitialShift = 260;
+    const copyFinalShift = 150;
+    const localCenter = { x: 100, y: 70 };
+
+    let currentPhase = 0;
+    let isAnimating = false;
+
+    const state = {
+      originalProgress: 0,
+      copyOpacity: 0,
+      flipProgress: 0,
+      slideProgress: 0,
+      baseArrowProgress: 0
+    };
+
+    const phaseLines = {
+      1: "This is a trapezoid.",
+      2: "Its bottom base is b₁.",
+      3: "Its top base is b₂, and its height is h.",
+      4: "Now let's make a copy.",
+      5: "Flip the copy upside down.",
+      6: "Slide it next to the first trapezoid.",
+      7: "Now the 2 trapezoids make a parallelogram.",
+      8: "The new base is b₁ + b₂.",
+      9: "The height stays h.",
+      10: "Now find the area of the parallelogram.",
+      11: "Area of parallelogram = b x h = ( b1 + b2 ) x h",
+      12: "So 1 trapezoid has half that area."
+    };
+
+    function lerp(a, b, t) {
+      return a + (b - a) * t;
+    }
+
+    function easeInOut(t) {
+      return t < 0.5
+        ? 4 * t * t * t
+        : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    }
+
+    function rotateLocalPoint(p, angle) {
+      const dx = p.x - localCenter.x;
+      const dy = p.y - localCenter.y;
+      return {
+        x: localCenter.x + dx * Math.cos(angle) - dy * Math.sin(angle),
+        y: localCenter.y + dx * Math.sin(angle) + dy * Math.cos(angle)
+      };
+    }
+
+    function offsetPoint(p, offsetX, offsetY) {
+      return {
+        x: p.x + offsetX,
+        y: p.y + offsetY
+      };
+    }
+
+    function getOriginalPoints() {
+      return localTrap.map(p => ({
+        x: originalOffset.x + p.x,
+        y: originalOffset.y + p.y
+      }));
+    }
+
+    function getCopyAngle() {
+      return state.flipProgress * Math.PI;
+    }
+
+    function getCopyShift() {
+      return lerp(copyInitialShift, copyFinalShift, state.slideProgress);
+    }
+
+    function getCopyPoints() {
+      const angle = getCopyAngle();
+      const xShift = getCopyShift();
+      return localTrap.map(p => {
+        const rotated = rotateLocalPoint(p, angle);
+        return offsetPoint(rotated, originalOffset.x + xShift, originalOffset.y);
+      });
+    }
+
+    function getCopyBaseSegments() {
+      const angle = getCopyAngle();
+      const xShift = getCopyShift();
+      const transform = p => offsetPoint(rotateLocalPoint(p, angle), originalOffset.x + xShift, originalOffset.y);
+      return {
+        b1: [transform(localTrap[0]), transform(localTrap[1])],
+        b2: [transform(localTrap[3]), transform(localTrap[2])]
+      };
+    }
+
+    function getCentroid(points) {
+      const sum = points.reduce((acc, p) => ({ x: acc.x + p.x, y: acc.y + p.y }), { x: 0, y: 0 });
+      return { x: sum.x / points.length, y: sum.y / points.length };
+    }
+
+    function drawPolygon(points, fillStyle, strokeStyle, alpha = 1) {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i].x, points[i].y);
+      }
+      ctx.closePath();
+      ctx.fillStyle = fillStyle;
+      ctx.strokeStyle = strokeStyle;
+      ctx.lineWidth = 3;
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawPartialOutline(points, progress, color) {
+      const segments = [];
+      let totalLength = 0;
+
+      for (let i = 0; i < points.length; i++) {
+        const p1 = points[i];
+        const p2 = points[(i + 1) % points.length];
+        const len = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+        segments.push({ p1, p2, len });
+        totalLength += len;
+      }
+
+      let remaining = totalLength * progress;
+
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+
+      for (const seg of segments) {
+        if (remaining <= 0) break;
+
+        ctx.moveTo(seg.p1.x, seg.p1.y);
+
+        if (remaining >= seg.len) {
+          ctx.lineTo(seg.p2.x, seg.p2.y);
+          remaining -= seg.len;
+        } else {
+          const t = remaining / seg.len;
+          ctx.lineTo(
+            lerp(seg.p1.x, seg.p2.x, t),
+            lerp(seg.p1.y, seg.p2.y, t)
+          );
+          remaining = 0;
+        }
+      }
+
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawArrow(x1, y1, x2, y2, label, color = "#222", alpha = 1, labelPosition = "above") {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = 2;
+
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+
+      const angle = Math.atan2(y2 - y1, x2 - x1);
+      const head = 10;
+
+      function drawHead(x, y, ang) {
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x - head * Math.cos(ang - Math.PI / 6), y - head * Math.sin(ang - Math.PI / 6));
+        ctx.lineTo(x - head * Math.cos(ang + Math.PI / 6), y - head * Math.sin(ang + Math.PI / 6));
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      drawHead(x2, y2, angle);
+      drawHead(x1, y1, angle + Math.PI);
+
+      if (label) {
+        ctx.font = "22px Comic Sans MS";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        const labelY = labelPosition === "below" ? y1 + 18 : y1 - 16;
+        ctx.fillText(label, (x1 + x2) / 2, labelY);
+      }
+      ctx.restore();
+    }
+
+    function drawSegmentArrow(p1, p2, label, color, centroid, alpha = 1) {
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const len = Math.hypot(dx, dy);
+      if (len === 0) return;
+
+      const ux = dx / len;
+      const uy = dy / len;
+      let nx = -uy;
+      let ny = ux;
+      const mx = (p1.x + p2.x) / 2;
+      const my = (p1.y + p2.y) / 2;
+      const vx = mx - centroid.x;
+      const vy = my - centroid.y;
+      if (vx * nx + vy * ny < 0) {
+        nx *= -1;
+        ny *= -1;
+      }
+
+      const offset = 20;
+      const ax1 = p1.x + nx * offset;
+      const ay1 = p1.y + ny * offset;
+      const ax2 = p2.x + nx * offset;
+      const ay2 = p2.y + ny * offset;
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = 2;
+
+      ctx.beginPath();
+      ctx.moveTo(ax1, ay1);
+      ctx.lineTo(ax2, ay2);
+      ctx.stroke();
+
+      const angle = Math.atan2(ay2 - ay1, ax2 - ax1);
+      const head = 10;
+
+      function drawHead(x, y, ang) {
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x - head * Math.cos(ang - Math.PI / 6), y - head * Math.sin(ang - Math.PI / 6));
+        ctx.lineTo(x - head * Math.cos(ang + Math.PI / 6), y - head * Math.sin(ang + Math.PI / 6));
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      drawHead(ax2, ay2, angle);
+      drawHead(ax1, ay1, angle + Math.PI);
+
+      const tx = (ax1 + ax2) / 2 + nx * 2;
+      const ty = (ay1 + ay2) / 2 + ny * 2;
+      ctx.translate(tx, ty);
+      ctx.rotate(angle);
+      ctx.font = "22px Comic Sans MS";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(label, 0, -14);
+      ctx.restore();
+    }
+
+    function drawHeightLine(x, yTop, yBottom, label, color = "#222", alpha = 1) {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([7, 6]);
+
+      ctx.beginPath();
+      ctx.moveTo(x, yTop);
+      ctx.lineTo(x, yBottom);
+      ctx.stroke();
+
+      ctx.setLineDash([]);
+      ctx.font = "22px Comic Sans MS";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.fillText(label, x + 12, (yTop + yBottom) / 2);
+      ctx.restore();
+    }
+
+    function getCaptionLines() {
+      if (currentPhase <= 0) return ["Click Play to begin."];
+      const groupStart = currentPhase - ((currentPhase - 1) % 3);
+      const lines = [];
+      for (let p = groupStart; p <= Math.min(currentPhase, 12); p++) {
+        if (phaseLines[p]) lines.push(phaseLines[p]);
+      }
+      return lines;
+    }
+
+    function drawCaptionStack() {
+      if (currentPhase >= 13) return;
+
+      const lines = getCaptionLines();
+      ctx.save();
+      ctx.fillStyle = "#111";
+      ctx.font = "24px Comic Sans MS";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+
+      const baseY = 98;
+      for (let i = 0; i < lines.length; i++) {
+        ctx.fillText(lines[i], 400, baseY + i * 32);
+      }
+      ctx.restore();
+    }
+
+    function drawScene() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (currentPhase === 13) {
+        playButton.textContent = "Replay";
+
+        ctx.fillStyle = "#111";
+        ctx.textAlign = "center";
+
+        ctx.font = "52px Comic Sans MS";
+        ctx.fillText("Area of a trapezoid", 400, 170);
+
+        ctx.font = "32px Comic Sans MS";
+        ctx.fillText("A = (b₁ + b₂) × h ÷ 2", 400, 285);
+
+        ctx.font = "28px Comic Sans MS";
+        ctx.fillText("Add the 2 bases, multiply by the height,", 400, 370);
+        ctx.fillText("then divide by 2.", 400, 410);
+        return;
+      }
+
+      playButton.textContent = "Play";
+
+      ctx.fillStyle = "#111";
+      ctx.textAlign = "center";
+      ctx.font = "34px Comic Sans MS";
+      ctx.fillText("Area of a Trapezoid", 400, 52);
+      drawCaptionStack();
+
+      const originalPoints = getOriginalPoints();
+      const originalCentroid = getCentroid(originalPoints);
+      if (state.originalProgress > 0) {
+        if (state.originalProgress < 1) {
+          drawPartialOutline(originalPoints, state.originalProgress, "#d35400");
+        } else {
+          drawPolygon(originalPoints, "rgba(255, 190, 120, 0.85)", "#d35400");
+        }
+      }
+
+      if (currentPhase >= 2 && state.originalProgress === 1) {
+        drawArrow(230, 466, 430, 466, "b₁", "#8e44ad");
+      }
+
+      if (currentPhase >= 3 && state.originalProgress === 1) {
+        drawArrow(280, 284, 380, 284, "b₂", "#8e44ad");
+        drawHeightLine(330, 300, 440, "h", "#0b7285");
+      }
+
+      if (state.copyOpacity > 0) {
+        const copyPoints = getCopyPoints();
+        const copyCentroid = getCentroid(copyPoints);
+        drawPolygon(copyPoints, "rgba(130, 200, 255, 0.72)", "#1c7ed6", state.copyOpacity);
+
+        if (currentPhase >= 4) {
+          const copyBases = getCopyBaseSegments();
+          drawSegmentArrow(copyBases.b1[0], copyBases.b1[1], "b₁", "#8e44ad", copyCentroid, state.copyOpacity);
+          drawSegmentArrow(copyBases.b2[0], copyBases.b2[1], "b₂", "#8e44ad", copyCentroid, state.copyOpacity);
+        }
+      }
+
+      if (currentPhase >= 8) {
+        const xEnd = lerp(230, 530, state.baseArrowProgress);
+        drawArrow(230, 488, xEnd, 488, state.baseArrowProgress >= 0.99 ? "b₁ + b₂" : "", "#c2255c", 1, "below");
+      }
+
+    }
+
+    function animateProperty(duration, updateFn, doneFn) {
+      isAnimating = true;
+      const start = performance.now();
+
+      function frame(now) {
+        const raw = Math.min((now - start) / duration, 1);
+        const t = easeInOut(raw);
+        updateFn(t);
+        drawScene();
+
+        if (raw < 1) {
+          requestAnimationFrame(frame);
+        } else {
+          isAnimating = false;
+          if (doneFn) doneFn();
+        }
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+    function nextPhase() {
+      if (isAnimating) return;
+
+      if (currentPhase === 13) {
+        resetAnimation();
+        drawScene();
+        return;
+      }
+
+      currentPhase += 1;
+
+      switch (currentPhase) {
+        case 1:
+          animateProperty(1000, t => {
+            state.originalProgress = t;
+          });
+          break;
+        case 4:
+          animateProperty(700, t => {
+            state.copyOpacity = t;
+          });
+          break;
+        case 5:
+          animateProperty(1000, t => {
+            state.flipProgress = t;
+          });
+          break;
+        case 6:
+          animateProperty(1000, t => {
+            state.slideProgress = t;
+          });
+          break;
+        case 8:
+          animateProperty(800, t => {
+            state.baseArrowProgress = t;
+          });
+          break;
+        default:
+          drawScene();
+      }
+    }
+
+    function resetAnimation() {
+      currentPhase = 0;
+      isAnimating = false;
+      state.originalProgress = 0;
+      state.copyOpacity = 0;
+      state.flipProgress = 0;
+      state.slideProgress = 0;
+      state.baseArrowProgress = 0;
+      playButton.textContent = "Play";
+    }
+
+    playButton.addEventListener("click", nextPhase);
+    drawScene();
+  </script>
+</body>
+</html>
