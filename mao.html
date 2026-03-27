@@ -12,6 +12,58 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 
   <style>
+#tutorialOverlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.9);
+  z-index: 10000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+#tutorialBox{
+  position: relative;
+  width: min(860px, 88vw);
+  height: min(500px, 78vh);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#tutorialImage{
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+}
+
+#tutorialNext{
+  position: absolute;
+  right: -18px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 56px;
+  height: 50%;
+  min-height: 140px;
+  border: none;
+  border-radius: 18px;
+  background: rgba(255,255,255,0.88);
+  color: #111;
+  font-size: 42px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.25);
+  line-height: 1;
+}
+
+#tutorialNext:hover{
+  background: rgba(255,255,255,0.96);
+}
+    
     .hotspot.resetBtn{display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;line-height:1;}
     html, body {margin:0;padding:0;min-height:100vh;overflow-y:auto;background:url('https://daryeaye.github.io/geotopia/thatsit.png') no-repeat center center fixed;background-size:cover;}
     body {display:flex;justify-content:center;align-items:flex-start;padding:10px 0 40px;box-sizing:border-box;font-family:Arial,sans-serif;}
@@ -213,6 +265,12 @@
   </div>
 
   <script>
+const TUTORIAL_IMAGES = [
+  "https://daryeaye.github.io/geotopia/t1.jpg",
+  "https://daryeaye.github.io/geotopia/t2.jpg",
+  "https://daryeaye.github.io/geotopia/t3.jpg"
+];
+    
     const APP_ID = 'powerfall-pt1';
     const WORKER_BASE_URL = 'https://geotopia-powerfall-auth-api.daryeaye.workers.dev';
     const SESSION_STORAGE_KEY = 'gt8_cloud_token';
@@ -619,6 +677,44 @@
       collapseBtn.addEventListener('click', function (e) { e.stopPropagation(); widget.classList.add('collapsed'); });
     })();
 
+let tutorialIndex = 0;
+
+function showTutorial() {
+  const overlay = document.getElementById("tutorialOverlay");
+  const img = document.getElementById("tutorialImage");
+
+  tutorialIndex = 0;
+  img.src = TUTORIAL_IMAGES[tutorialIndex];
+  overlay.style.display = "flex";
+}
+
+function nextTutorialSlide() {
+  const overlay = document.getElementById("tutorialOverlay");
+  const img = document.getElementById("tutorialImage");
+
+  tutorialIndex++;
+
+  if (tutorialIndex >= TUTORIAL_IMAGES.length) {
+    overlay.style.display = "none";
+    return;
+  }
+
+  img.src = TUTORIAL_IMAGES[tutorialIndex];
+}
+
+function initTutorial() {
+  const nextBtn = document.getElementById("tutorialNext");
+  nextBtn.addEventListener("click", nextTutorialSlide);
+
+  // preload images
+  TUTORIAL_IMAGES.forEach(url => {
+    const pre = new Image();
+    pre.src = url;
+  });
+
+  showTutorial();
+}
+    
     document.addEventListener('DOMContentLoaded', async function () {
       initLineDrawing('draw4', 'reset4', 4);
       initLineDrawing('draw6', 'reset6', 4);
@@ -669,7 +765,14 @@
       if (authToken) {
         try { await loadProgressFromServer(); } catch (err) { console.error(err); clearSessionLocally(); }
       }
+      initTutorial();
     });
   </script>
+<div id="tutorialOverlay">
+  <div id="tutorialBox">
+    <img id="tutorialImage" src="" alt="Tutorial">
+    <button id="tutorialNext" type="button" aria-label="Next tutorial slide">›</button>
+  </div>
+</div>
 </body>
 </html>
