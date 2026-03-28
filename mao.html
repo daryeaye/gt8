@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -109,6 +110,14 @@
     #role-container.pdf-mode #role-stage {display:none;}
     #openFileWrap {width:960px;text-align:center;margin-top:10px;}
     #openFileBtn {font-size:16px;padding:8px 16px;background:lightblue;border:none;cursor:pointer;border-radius:6px;line-height:1;}
+
+    .animation-window {position:absolute;left:144px;top:8px;width:672px;height:418px;overflow:hidden;background:#fff;}
+    .animation-window iframe {position:absolute;left:2px;top:0;width:800px;height:500px;border:none;transform:scale(0.836);transform-origin:top left;}
+    #animationPromptOverlay {position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:11000;display:none;align-items:center;justify-content:center;}
+    #animationPromptBox {background:#fff;padding:24px 28px;border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,0.35);min-width:320px;text-align:center;}
+    #animationPromptText {font-family:"Comic Sans MS",sans-serif;font-size:24px;margin-bottom:18px;color:#111;}
+    #animationPromptButtons {display:flex;justify-content:center;gap:16px;}
+    #animationPromptButtons button {min-width:110px;border-radius:8px;}
   </style>
 </head>
 <body>
@@ -171,6 +180,11 @@
             <input type="text" class="textbox cloud-input" data-savekey="p5-10" style="left:817px; top:432px; width:52px; height:33px;">
             <input type="text" class="textbox cloud-input" data-savekey="p5-112" style="left:644px; top:471px; width:157px; height:33px;">
           </div>
+          <div id="page5ex" class="page" style="background:url('https://daryeaye.github.io/gt8/8-05ex.jpg') no-repeat center/cover;">
+            <div class="animation-window">
+              <iframe src="https://daryeaye.github.io/gt8/tri.html" title="Triangle animation"></iframe>
+            </div>
+          </div>
           <div id="page6" class="page" style="background:url('https://daryeaye.github.io/gt8/8-06.jpg') no-repeat center/cover;">
             <canvas id="draw6" class="drawingCanvas" width="960" height="540"></canvas>
             <button id="reset6" class="hotspot resetBtn" style="left:768px; top:448px; width:148px; height:36px;">Reset</button>
@@ -190,6 +204,11 @@
             <input type="text" class="textbox cloud-input" data-savekey="p7-7" style="left:90px; top:329px; width:53px; height:34px;">
             <input type="text" class="textbox cloud-input" data-savekey="p7-8" style="left:107px; top:367px; width:53px; height:34px;">
             <input type="text" class="textbox cloud-input" data-savekey="p7-30" style="left:97px; top:407px; width:158px; height:34px;">
+          </div>
+          <div id="page7ex" class="page" style="background:url('https://daryeaye.github.io/gt8/8-07ex.jpg') no-repeat center/cover;">
+            <div class="animation-window">
+              <iframe src="https://daryeaye.github.io/gt8/trap.html" title="Trapezoid animation"></iframe>
+            </div>
           </div>
           <div id="page8" class="page" style="background:url('https://daryeaye.github.io/gt8/8-08.jpg') no-repeat center/cover;">
             <canvas id="draw8" class="drawingCanvas" width="960" height="540"></canvas>
@@ -264,6 +283,16 @@
     <p><a href="https://translate.google.com/?sl=en&tl=es&op=images" target="_blank">Click me and paste from clipboard</a></p>
   </div>
 
+  <div id="animationPromptOverlay">
+    <div id="animationPromptBox">
+      <div id="animationPromptText">Did you finish watching the animation?</div>
+      <div id="animationPromptButtons">
+        <button id="animationPromptYes" type="button">Yes</button>
+        <button id="animationPromptNo" type="button">No</button>
+      </div>
+    </div>
+  </div>
+
   <script>
 const TUTORIAL_IMAGES = [
   "https://daryeaye.github.io/geotopia/t1.jpg",
@@ -279,7 +308,7 @@ const TUTORIAL_IMAGES = [
     const ALERT_WRONG = 'Check the mural and try again.';
 
     let currentPage = 1;
-    const totalPages = 16;
+    const totalPages = 18;
     let branchLastPage = null;
     let maxSeqIndexVisited = 0;
     let currentPdfUrl = '';
@@ -294,9 +323,38 @@ const TUTORIAL_IMAGES = [
     function setSaveStatus(text) { document.getElementById('saveStatus').textContent = text; }
 
     function getSequence() {
-      if (branchLastPage === 15) return [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15];
-      if (branchLastPage === 16) return [1,2,3,4,5,6,7,8,9,10,11,12,13,14,16];
-      return [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16];
+      if (branchLastPage === 15) return [1,2,3,4,5,'5ex',6,7,'7ex',8,9,10,11,12,13,14,15];
+      if (branchLastPage === 16) return [1,2,3,4,5,'5ex',6,7,'7ex',8,9,10,11,12,13,14,16];
+      return [1,2,3,4,5,'5ex',6,7,'7ex',8,9,10,11,12,13,14,15,16];
+    }
+
+    function requiresAnimationPrompt(pageId) { return ['5ex','7ex'].includes(pageId); }
+
+    function normalizePageId(pageId) {
+      if (pageId === '5ex' || pageId === '7ex') return pageId;
+      const n = Number(pageId);
+      return Number.isInteger(n) && n >= 1 && n <= 16 ? n : 1;
+    }
+
+    let animationPromptResolver = null;
+
+    function askAnimationFinished() {
+      return new Promise(resolve => {
+        animationPromptResolver = resolve;
+        document.getElementById('animationPromptOverlay').style.display = 'flex';
+      });
+    }
+
+    function closeAnimationPrompt(answer) {
+      document.getElementById('animationPromptOverlay').style.display = 'none';
+      const resolver = animationPromptResolver;
+      animationPromptResolver = null;
+      if (resolver) resolver(answer);
+    }
+
+    function initAnimationPrompt() {
+      document.getElementById('animationPromptYes').addEventListener('click', () => closeAnimationPrompt(true));
+      document.getElementById('animationPromptNo').addEventListener('click', () => closeAnimationPrompt(false));
     }
     function requiresCheck(pageNum) { return [3,5,7,9,11,12,14].includes(pageNum); }
 
@@ -346,10 +404,14 @@ const TUTORIAL_IMAGES = [
       return { ok: true };
     }
 
-    function nextPage() {
+    async function nextPage() {
       if (requiresCheck(currentPage)) {
         const res = validatePage(currentPage);
         if (!res.ok) { alert(res.reason === 'empty' ? ALERT_EMPTY : ALERT_WRONG); return; }
+      }
+      if (requiresAnimationPrompt(currentPage)) {
+        const finished = await askAnimationFinished();
+        if (!finished) return;
       }
       if (currentPage === 13 && !branchLastPage) { alert('Choose one path on this page to continue.'); return; }
       const seq = getSequence();
@@ -368,7 +430,7 @@ const TUTORIAL_IMAGES = [
     }
 
     function showPage(p) {
-      for (let i = 1; i <= totalPages; i++) document.getElementById('page' + i).classList.remove('active');
+      document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
       document.getElementById('page' + p).classList.add('active');
       const seq = getSequence();
       const idx = seq.indexOf(p);
@@ -525,7 +587,7 @@ const TUTORIAL_IMAGES = [
       applyInputValues(safe.inputValues || {});
       const incomingDrawings = safe.drawings && typeof safe.drawings === 'object' ? safe.drawings : {};
       ['draw4','draw6','draw8','draw11','draw12'].forEach(id => { drawings[id] = Array.isArray(incomingDrawings[id]) ? incomingDrawings[id] : []; redrawLines(id); });
-      currentPage = Number.isInteger(Number(safe.currentPage)) ? Number(safe.currentPage) : 1;
+      currentPage = normalizePageId(safe.currentPage);
       showPage(currentPage);
       isApplyingRemoteData = false;
     }
@@ -730,6 +792,7 @@ function initTutorial() {
       initPdfJs();
       initSecondCanvasHotspots();
       initCloudInputs();
+      initAnimationPrompt();
       restoreSessionLocally();
       document.getElementById('registerBtn').addEventListener('click', registerUser);
       document.getElementById('loginBtn').addEventListener('click', loginUser);
