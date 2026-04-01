@@ -729,21 +729,52 @@ const TUTORIAL_IMAGES = [
       }
     }
 
-    async function loginUser() {
+    function hasMeaningfulLocalProgress() {
+      const inputValues = collectInputValues();
+      const hasInputs = Object.values(inputValues).some(v => String(v || '').trim() !== '');
+
+      const hasDrawings = Object.values(drawings).some(arr => Array.isArray(arr) && arr.length > 0);
+
+      const hasPageProgress =
+        currentPage !== 1 ||
+        maxSeqIndexVisited > 0 ||
+        branchLastPage !== null ||
+        !!currentPdfUrl;
+
+      return hasInputs || hasDrawings || hasPageProgress;
+    }
+    
+ async function loginUser() {
       const { usernameInput, passwordInput } = getAuthElements();
       const username = usernameInput.value.trim().toLowerCase();
       const password = passwordInput.value;
+
       if (!username || !password) {
         setAuthStatus('Enter username and password', true);
         return;
       }
+
       setAuthStatus('Logging in...');
+
       try {
-        const result = await apiFetch('/api/login', { method: 'POST', body: JSON.stringify({ username, password, appId: APP_ID }) });
+        const shouldPushLocalProgress = hasMeaningfulLocalProgress();
+
+        const result = await apiFetch('/api/login', {
+          method: 'POST',
+          body: JSON.stringify({ username, password, appId: APP_ID })
+        });
+
         saveSessionLocally(result.token, result.username || username);
-        applyProgressPayload(result.saveData || {});
         passwordInput.value = '';
-        setSaveStatus('Loaded');
+
+        if (shouldPushLocalProgress) {
+          setSaveStatus('Saving...');
+          await saveProgressToServer();
+          setSaveStatus('Saved');
+        } else {
+          applyProgressPayload(result.saveData || {});
+          setSaveStatus('Loaded');
+        }
       } catch (err) {
         setAuthStatus(err.message || 'Login failed', true);
       }
