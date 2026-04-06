@@ -448,11 +448,11 @@ const TUTORIAL_IMAGES = [
           if (v === '') return { ok: false, reason: 'empty' };
           return v.includes('138') ? { ok: true } : { ok: false, reason: 'wrong' };
         }
-        case 14: {
-          const v = (document.querySelector('input[data-savekey="p14-114"]')?.value || '').trim();
-          if (v === '') return { ok: false, reason: 'empty' };
-          return v.includes('114') ? { ok: true } : { ok: false, reason: 'wrong' };
-        }
+case 14: {
+  const v = (document.querySelector('[data-savekey="p14-114"]')?.value || '').trim();
+  if (v === '') return { ok: false, reason: 'empty' };
+  return v.includes('114') ? { ok: true } : { ok: false, reason: 'wrong' };
+}
       }
       return { ok: true };
     }
