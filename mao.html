@@ -70,10 +70,17 @@
     #header {width:960px;background:#eee;padding:10px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;position:sticky;top:0;z-index:2000;box-shadow:0 2px 6px rgba(0,0,0,0.12);box-sizing:border-box;}
     #topAuthRow,#progressRow {display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;box-sizing:border-box;}
     #topAuthLeft {display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-    #student-username,#student-password {font-size:16px;padding:5px 8px;width:150px;box-sizing:border-box;}
-    #registerBtn,#loginBtn,#logoutBtn,#introBtn,#openFileBtn,#prev-btn,#next-btn,#collapse-widget,#side-widget button:not(#collapse-widget) {font-family:"Love Ya Like A Sister", cursive;}
-    #registerBtn,#loginBtn,#logoutBtn,#introBtn {font-size:22px;padding:6px 12px;cursor:pointer;background-color:lightblue;border:none;line-height:1;border-radius:6px;}
+    
+    #logoutBtn,#introBtn,#authRegisterBtn,#authLoginBtn,#openFileBtn,#prev-btn,#next-btn,#collapse-widget,#side-widget button:not(#collapse-widget) {font-family:"Love Ya Like A Sister", cursive;}
+    #logoutBtn,#introBtn,#authRegisterBtn,#authLoginBtn {font-size:22px;padding:6px 12px;cursor:pointer;background-color:lightblue;border:none;line-height:1;border-radius:6px;}
     #authStatus {font-size:15px;font-family:"Comic Sans MS", sans-serif;color:#222;min-width:150px;}
+    #authOverlay {position:fixed;inset:0;background:rgba(0,0,0,0.78);z-index:15000;display:none;align-items:center;justify-content:center;}
+    #authOverlayBox {width:min(430px,88vw);background:#fffdf7;border:3px solid #000;border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,0.3);padding:24px 20px 18px;text-align:center;box-sizing:border-box;}
+    #authOverlayTitle {font-family:"Love Ya Like A Sister", cursive;font-size:34px;line-height:1.05;margin-bottom:10px;color:#111;}
+    #authOverlayText {font-family:"Comic Sans MS", sans-serif;font-size:16px;line-height:1.35;color:#222;margin-bottom:14px;}
+    #auth-username,#auth-password {width:100%;font-size:18px;padding:10px 12px;margin-bottom:10px;box-sizing:border-box;border:2px solid #000;border-radius:8px;font-family:"Comic Sans MS", sans-serif;background:#fff;}
+    #authOverlayButtons {display:flex;justify-content:center;gap:14px;flex-wrap:wrap;margin-top:6px;}
+    #authModalStatus {font-family:"Comic Sans MS", sans-serif;font-size:14px;line-height:1.3;min-height:18px;margin-top:12px;color:#222;}
     #progressBar {flex:1;background:#ccc;height:20px;margin:0 10px 0 0;position:relative;}
     #progress {background:green;height:100%;width:0%;}
     #progressText {font-size:16px;white-space:nowrap;}
@@ -124,10 +131,6 @@
     <div id="header">
       <div id="topAuthRow">
         <div id="topAuthLeft">
-          <input type="text" id="student-username" placeholder="Username" autocomplete="username" />
-          <input type="password" id="student-password" placeholder="Password" autocomplete="current-password" />
-          <button id="registerBtn" type="button">Register</button>
-          <button id="loginBtn" type="button">Log In</button>
           <button id="logoutBtn" type="button" style="display:none;">Log Out</button>
           <button id="introBtn" type="button" onclick="openIntro()">Intro</button>
         </div>
@@ -249,7 +252,8 @@
             <button id="choice-to-16" class="hotspot invisible-choice" aria-label="Choose path to Page 16" style="left:513px; top:344px; width:125px; height:85px;"></button>
           </div>
           <div id="page14" class="page" style="background:url('https://daryeaye.github.io/gt8/8-14.jpg') no-repeat center/cover;">
-            <input type="text" class="textbox cloud-input" data-savekey="p14-114" style="left:534px; top:145px; width:371px; height:348px;">
+          <textarea class="textbox cloud-input" data-savekey="p14-114"
+  style="left:534px; top:145px; width:371px; height:348px; resize:none; overflow:auto;"></textarea>
           </div>
           <div id="page15" class="page" style="background:url('https://daryeaye.github.io/gt8/8-15.jpg') no-repeat center/cover;">
             <input type="text" class="textbox cloud-input" data-savekey="p15-ki" style="left:557px; top:423px; width:268px; height:51px;">
@@ -283,6 +287,20 @@
     <p><a href="https://translate.google.com/?sl=en&tl=es&op=images" target="_blank">Click me and paste from clipboard</a></p>
   </div>
 
+  <div id="authOverlay">
+    <div id="authOverlayBox">
+      <div id="authOverlayTitle">Sign in to start</div>
+      <div id="authOverlayText">Please log in or register before entering the quest. Username cannot contain spaces.</div>
+      <input type="text" id="auth-username" placeholder="Username" autocomplete="username" />
+      <input type="password" id="auth-password" placeholder="Password" autocomplete="current-password" />
+      <div id="authOverlayButtons">
+        <button id="authRegisterBtn" type="button">Register</button>
+        <button id="authLoginBtn" type="button">Log In</button>
+      </div>
+      <div id="authModalStatus"></div>
+    </div>
+  </div>
+
   <div id="customPopupOverlay">
     <div id="customPopupBox">
       <div id="customPopupText"></div>
@@ -293,11 +311,11 @@
 
   <script>
 const TUTORIAL_IMAGES = [
-  "https://daryeaye.github.io/geotopia/t1.jpg",
   "https://daryeaye.github.io/geotopia/t2.jpg",
   "https://daryeaye.github.io/geotopia/t3.jpg"
 ];
     
+    const TUTORIAL_STORAGE_KEY = 'gt8_tutorial_seen';
     const APP_ID = 'powerfall-pt1';
     const WORKER_BASE_URL = 'https://geotopia-powerfall-auth-api.daryeaye.workers.dev';
     const SESSION_STORAGE_KEY = 'gt8_cloud_token';
@@ -656,12 +674,37 @@ const TUTORIAL_IMAGES = [
       setSaveStatus('Saved');
     }
 
+
+    function setAuthModalStatus(message, isError = false) {
+      const status = document.getElementById('authModalStatus');
+      if (!status) return;
+      status.textContent = message || '';
+      status.style.color = isError ? '#b00020' : '#222';
+    }
+
+    function openAuthOverlay(prefillUsername = '') {
+      const overlay = document.getElementById('authOverlay');
+      const usernameInput = document.getElementById('auth-username');
+      const passwordInput = document.getElementById('auth-password');
+      usernameInput.value = prefillUsername || loggedInUsername || '';
+      passwordInput.value = '';
+      setAuthModalStatus('Please sign in to continue.', false);
+      overlay.style.display = 'flex';
+      usernameInput.focus();
+    }
+
+    function closeAuthOverlay() {
+      const overlay = document.getElementById('authOverlay');
+      overlay.style.display = 'none';
+      setAuthModalStatus('', false);
+    }
+
+    function maybeRequireAuthOverlay() {
+      if (!authToken) openAuthOverlay(loggedInUsername || '');
+    }
+
     function getAuthElements() {
       return {
-        usernameInput: document.getElementById('student-username'),
-        passwordInput: document.getElementById('student-password'),
-        registerBtn: document.getElementById('registerBtn'),
-        loginBtn: document.getElementById('loginBtn'),
         logoutBtn: document.getElementById('logoutBtn'),
         authStatus: document.getElementById('authStatus')
       };
@@ -674,15 +717,11 @@ const TUTORIAL_IMAGES = [
     }
 
     function updateAuthUI() {
-      const { usernameInput, passwordInput, registerBtn, loginBtn, logoutBtn } = getAuthElements();
+      const { logoutBtn } = getAuthElements();
       const loggedIn = !!authToken;
-      if (loggedIn) {
-        usernameInput.value = loggedInUsername || usernameInput.value;
-      }
-      registerBtn.style.display = loggedIn ? 'none' : 'inline-block';
-      loginBtn.style.display = loggedIn ? 'none' : 'inline-block';
       logoutBtn.style.display = loggedIn ? 'inline-block' : 'none';
       setAuthStatus(loggedIn ? ('Logged in as ' + (loggedInUsername || 'student')) : 'Not logged in', false);
+      if (loggedIn) closeAuthOverlay();
     }
 
     function saveSessionLocally(token, username) {
@@ -704,79 +743,80 @@ const TUTORIAL_IMAGES = [
     function restoreSessionLocally() {
       authToken = localStorage.getItem(SESSION_STORAGE_KEY) || '';
       loggedInUsername = localStorage.getItem(SESSION_STORAGE_KEY + '_username') || '';
-      const { usernameInput } = getAuthElements();
-      if (loggedInUsername) usernameInput.value = loggedInUsername;
       updateAuthUI();
     }
 
     async function registerUser() {
-      const { usernameInput, passwordInput } = getAuthElements();
-      const username = usernameInput.value.trim().toLowerCase();
+      const usernameInput = document.getElementById('auth-username');
+      const passwordInput = document.getElementById('auth-password');
+      const usernameRaw = usernameInput.value.trim();
+      const username = usernameRaw.toLowerCase();
       const password = passwordInput.value;
+
       if (!username || !password) {
         setAuthStatus('Enter username and password', true);
+        setAuthModalStatus('Enter username and password.', true);
         return;
       }
+
+      if (/\s/.test(usernameRaw)) {
+        setAuthStatus('Username cannot contain spaces', true);
+        setAuthModalStatus('Username cannot contain spaces.', true);
+        return;
+      }
+
       setAuthStatus('Registering...');
+      setAuthModalStatus('Registering...', false);
       try {
-        const result = await apiFetch('/api/register', { method: 'POST', body: JSON.stringify({ username, password, appId: APP_ID }) });
+        const result = await apiFetch('/api/register', {
+          method: 'POST',
+          body: JSON.stringify({ username, password, appId: APP_ID })
+        });
         saveSessionLocally(result.token, result.username || username);
-        applyProgressPayload(result.saveData || {});
         passwordInput.value = '';
-        setSaveStatus('Loaded');
+        await loadProgressFromServer();
+        setAuthModalStatus('Account created.', false);
+        closeAuthOverlay();
       } catch (err) {
         setAuthStatus(err.message || 'Register failed', true);
+        setAuthModalStatus(err.message || 'Register failed', true);
       }
     }
 
-    function hasMeaningfulLocalProgress() {
-      const inputValues = collectInputValues();
-      const hasInputs = Object.values(inputValues).some(v => String(v || '').trim() !== '');
-
-      const hasDrawings = Object.values(drawings).some(arr => Array.isArray(arr) && arr.length > 0);
-
-      const hasPageProgress =
-        currentPage !== 1 ||
-        maxSeqIndexVisited > 0 ||
-        branchLastPage !== null ||
-        !!currentPdfUrl;
-
-      return hasInputs || hasDrawings || hasPageProgress;
-    }
-    
- async function loginUser() {
-      const { usernameInput, passwordInput } = getAuthElements();
-      const username = usernameInput.value.trim().toLowerCase();
+    async function loginUser() {
+      const usernameInput = document.getElementById('auth-username');
+      const passwordInput = document.getElementById('auth-password');
+      const usernameRaw = usernameInput.value.trim();
+      const username = usernameRaw.toLowerCase();
       const password = passwordInput.value;
 
       if (!username || !password) {
         setAuthStatus('Enter username and password', true);
+        setAuthModalStatus('Enter username and password.', true);
+        return;
+      }
+
+      if (/\s/.test(usernameRaw)) {
+        setAuthStatus('Username cannot contain spaces', true);
+        setAuthModalStatus('Username cannot contain spaces.', true);
         return;
       }
 
       setAuthStatus('Logging in...');
-
+      setAuthModalStatus('Logging in...', false);
       try {
-        const shouldPushLocalProgress = hasMeaningfulLocalProgress();
-
         const result = await apiFetch('/api/login', {
           method: 'POST',
           body: JSON.stringify({ username, password, appId: APP_ID })
         });
-
         saveSessionLocally(result.token, result.username || username);
         passwordInput.value = '';
-
-        if (shouldPushLocalProgress) {
-          setSaveStatus('Saving...');
-          await saveProgressToServer();
-          setSaveStatus('Saved');
-        } else {
-          applyProgressPayload(result.saveData || {});
-          setSaveStatus('Loaded');
-        }
+        await loadProgressFromServer();
+        setAuthModalStatus('Logged in.', false);
+        closeAuthOverlay();
       } catch (err) {
         setAuthStatus(err.message || 'Login failed', true);
+        setAuthModalStatus(err.message || 'Login failed', true);
       }
     }
 
@@ -792,11 +832,18 @@ const TUTORIAL_IMAGES = [
     }
 
     async function logout() {
-      try { if (authToken) await apiFetch('/api/logout', { method: 'POST', body: '{}' }); } catch (err) { console.error(err); }
+      clearTimeout(saveTimer);
+      try {
+        if (authToken) {
+          await apiFetch('/api/logout', { method: 'POST', body: '{}' });
+        }
+      } catch (err) {
+        console.error(err);
+      }
+      const prefill = loggedInUsername || '';
       clearSessionLocally();
-      getAuthElements().passwordInput.value = '';
-      setSaveStatus('Logged out');
-      showPage(1);
+      setSaveStatus('Not saved yet');
+      openAuthOverlay(prefill);
     }
 
     function initCloudInputs() {
@@ -816,26 +863,30 @@ const TUTORIAL_IMAGES = [
 let tutorialIndex = 0;
 
 function showTutorial() {
-  const alreadySeen = localStorage.getItem("gt10_tutorial_seen");
-  if (alreadySeen === "yes") return;
+  const alreadySeen = localStorage.getItem(TUTORIAL_STORAGE_KEY);
+  if (alreadySeen === 'yes') {
+    maybeRequireAuthOverlay();
+    return;
+  }
 
-  const overlay = document.getElementById("tutorialOverlay");
-  const img = document.getElementById("tutorialImage");
+  const overlay = document.getElementById('tutorialOverlay');
+  const img = document.getElementById('tutorialImage');
 
   tutorialIndex = 0;
   img.src = TUTORIAL_IMAGES[tutorialIndex];
-  overlay.style.display = "flex";
+  overlay.style.display = 'flex';
 }
 
 function nextTutorialSlide() {
-  const overlay = document.getElementById("tutorialOverlay");
-  const img = document.getElementById("tutorialImage");
+  const overlay = document.getElementById('tutorialOverlay');
+  const img = document.getElementById('tutorialImage');
 
   tutorialIndex++;
 
   if (tutorialIndex >= TUTORIAL_IMAGES.length) {
-    overlay.style.display = "none";
-    localStorage.setItem("gt10_tutorial_seen", "yes");
+    overlay.style.display = 'none';
+    localStorage.setItem(TUTORIAL_STORAGE_KEY, 'yes');
+    maybeRequireAuthOverlay();
     return;
   }
 
@@ -843,10 +894,9 @@ function nextTutorialSlide() {
 }
 
 function initTutorial() {
-  const nextBtn = document.getElementById("tutorialNext");
-  nextBtn.addEventListener("click", nextTutorialSlide);
+  const nextBtn = document.getElementById('tutorialNext');
+  nextBtn.addEventListener('click', nextTutorialSlide);
 
-  // preload images
   TUTORIAL_IMAGES.forEach(url => {
     const pre = new Image();
     pre.src = url;
@@ -854,7 +904,7 @@ function initTutorial() {
 
   showTutorial();
 }
-    
+
     document.addEventListener('DOMContentLoaded', async function () {
       initLineDrawing('draw4', 'reset4', 4);
       initLineDrawing('draw6', 'reset6', 4);
@@ -867,9 +917,15 @@ function initTutorial() {
       initSecondCanvasHotspots();
       initCloudInputs();
       restoreSessionLocally();
-      document.getElementById('registerBtn').addEventListener('click', registerUser);
-      document.getElementById('loginBtn').addEventListener('click', loginUser);
+      document.getElementById('authRegisterBtn').addEventListener('click', registerUser);
+      document.getElementById('authLoginBtn').addEventListener('click', loginUser);
       document.getElementById('logoutBtn').addEventListener('click', logout);
+      document.getElementById('auth-password').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          loginUser();
+        }
+      });
       document.getElementById('openFileBtn').addEventListener('click', () => { if (!currentPdfUrl) { showMessagePopup('Please select a role file first.'); return; } window.open(currentPdfUrl, '_blank'); });
       document.getElementById('select-text').addEventListener('click', function () {
         const overlay = document.createElement('div'); overlay.id = 'selection-overlay'; document.body.appendChild(overlay);
